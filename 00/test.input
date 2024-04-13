@@ -1,0 +1,12 @@
+&GATEWAY
+  Coord = 2
+  Angstrom
+  H 0.0 0.0 0.0
+  H 1.0 0.0 0.0
+  Basis = 6-31G*
+  Group = C1
+  NoCD
+
+&SEWARD
+
+&SCF
