@@ -42,15 +42,31 @@ OpenMolcasは自分でソースコードをコンパイルしなければなり�
 - CUI環境の準備
 - Gitによるソースコードの取得
 - OpenMolcasのコンパイル
+- OpenMolcasのコンパイル（GA並列）
 - テスト計算
 
 ## CUI環境の準備(Windowsの場合)
 
 Windows上でCUI環境を扱うには、とりあえずWindows Subsystem for Linux (WSL)を使うことにしましょう。
 これにより、Windows上でLinuxを扱うことができるようになります。
+他にもCygwinを使うなどが考えられます。このあたりはお好みに応じて。
 Macintoshの場合は特に何もしなくてもできると思いますが、YoshioNishimotoはMacintoshユーザーではないのでよく分かりません。
 
-まずは
+まずは[https://learn.microsoft.com/ja-jp/windows/wsl/about](https://learn.microsoft.com/ja-jp/windows/wsl/about)おより[WSLをインストール](https://learn.microsoft.com/ja-jp/windows/wsl/install)を参考にWSLをインストールしましょう。
+普通にやると、Ubuntu (Linuxディストリビューションの一つ)がインストールされます。
+私がやってみたところ、Ubuntu 22.04.3 LTSがインストーされました（2024年4月13日）。
+
+```
+自分用メモ
+Windowsキー + R → cmd
+> wsl --install # cmd command
+割と時間がかかる。で、再起動。
+Enter new UNIX username: ...
+New password: ...
+```
+
+なお、WSLを使うにはLinuxのコマンドを勉強する必要があります。
+ls, cd, vi(m) (× emacs), cp, mv, rmあたりを調べて使えるようにしておきましょう。
 
 ## Gitによるソースコードの取得
 
@@ -67,9 +83,117 @@ GitHubというのは、Gitを用いたソフトウェア開発のプラット�
 他にも[GitLab](https://about.gitlab.com/ja-jp/)が有名でしょう。
 自分のレポジトリを作成するにはアカウントが必要ですが、既存のレポジトリをのぞいたりコードをダウンロードするにはアカウントは必要ありません。
 
+というわけで、ホームディレクトリ上にOpenMolcasのv24.02 (2024年2月時点でのスナップショット。masterブランチでも良い)をインストールすることにしてみます。
+[https://gitlab.com/Molcas/OpenMolcas/-/releases](https://gitlab.com/Molcas/OpenMolcas/-/releases)のページから対応するZIPファイル（OpenMolcas-v24.02.zip）でもダウンロードして、
+WSLのホームディレクトリ（エクスプローラーからの場所は「\\wsl.localhost\Ubuntu\home\***\」）に配置します
 
+<!--
+```
+$ cd ~  # ホームディレクトリに移動
+$ ls # カレントディレクトリのファイル・ディレクトリを表示
+OpenMolcas-v24.02.zip
+
+```
+
+デフォルトだとunzipコマンドが使えないので、管理者ユーザーでapt get installします。
+
+```
+$ sudo passwd root
+[sudo] password for ***:
+New password:
+Retype new password:
+passwd: password updated successfully
+$ su
+Password:
+# apt install unzip
+# exit
+$ unzip OpenMolcas-v24.02.zip
+...
+$ cd OpenMolcas-v24.02
+```
+ZIPファイルは削除しても良いでしょう。
+git cloneを使う場合は次のような感じ。
+-->
+
+```
+$ cd ~  # ホームディレクトリに移動
+$ ls # カレントディレクトリのファイル・ディレクトリを表示
+$ git clone https://gitlab.com/Molcas/OpenMolcas.git # リモートのOpenMolcasレポジトリを取得
+$ ls
+$ cd OpenMolcas
+$ git checkout v24.02 # v24.02というブランチにきりかえる
+```
+
+普通にWSLをインストールするとgitも使えるはずですが、
+もしもgitコマンドが見つからない場合はなんとかしてインストールしましょう。
+
+もう一つ、WSLはそのままだとコンパイラがインストールされていないようです。
+なので、普通にGNUコンパイラなどをインストールしてみます。
+余裕があればintel compilerでもインストールしましょう。
+
+```
+$ su
+# apt install gfortran
+# apt-get update
+# apt install gfortran
+# apt install g++
+# apt install cmake
+# exit
+$
+```
+
+「$」は一般ユーザーのプロンプト、「#」は管理者ユーザーのプロンプトです。
+次に、BLASとLAPACKをインストールしましょう。
+あとで`./configure-cmake`をするときに失敗するため、
+BLASとLAPACKにはいろいろな種類がありますが、intelのmath kernel library (MKL)が使えるようなので、こちらをインストールしてしまいます。
+
+```
+$ su
+# apt install intel-mkl
+# exit
+$
+```
+
+ここまでがインストール前の準備となります。
 
 ## OpenMolcasのコンパイル
+
+まずは一番ベーシックなインストールをしてみましょう。
+とりあえず次のコマンドを打ち込んで、どのようなオプションがあるか確認。
+
+```
+$ ./configure-cmake
+```
+
+できればオプションを検討して欲しい（`--compiler`、`--opt`、`--omp`、`--prefix`あたり）ところですが、まずは何も考えずに
+
+```
+$ ./configure-cmake --default --omp
+```
+
+すると、エラーメッセージが出るので対処しましょう（線形代数の計算に必要なBLASとLAPACKというライブラリが見つからないため）。
+結局、今回は次のような感じでインストールしました（このようにする必要はない）。
+
+```
+$ ./configure-cmake --compiler gnu --prefix ~/OpenMolcas --omp
+```
+
+あとは指示に沿ってコンパイル・インストールしましょう。
+
+```
+$./ make-gnu_dev
+```
+
+## OpenMolcasのコンパイル（GA並列）
+
+OpenMolcasは数学ライブラリがスレッド並列に対応していれば並列計算が可能（`--omp`オプションが必要）です。
+この並列計算は一つの計算機の中での並列計算が可能となるのみで、多くの計算機を使うような並列を行うことはできません（このチュートリアルでそこまでやるかは別として）。
+また、スレッド並列は数学ライブラリを使っていない部分の処理は並列されません。
+
+OpenMolcasでスタンダードな並列計算は、Global Arrays (GA)を用いて行います。
+GAは並列計算をするためのライブラリで、
+これはmassive passage interface (MPI)をラップして分散メモリをアクセスしやすくしているだけで、
+実際にはより低レベルのMPIを呼んでいます（私の理解が正しければ）。
 
 ## テスト計算
 
@@ -79,6 +203,7 @@ GitHubというのは、Gitを用いたソフトウェア開発のプラット�
 
 ## 演習問題
 
+- もう少し大きな分子を用いた計算をして、OMP並列とGA並列のパフォーマンスを比較してみましょう。
 - ヒュッケル法でどのような近似をしていたか教えてください。
 - 
 
