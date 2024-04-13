@@ -82,6 +82,8 @@ ls, cd, vi(m) (× emacs), cp, mv, rmあたりを調べて使えるようにし�
 GitHubというのは、Gitを用いたソフトウェア開発のプラットフォーム（環境・ウェブサイト・アプリと考えれば良い）のことです。
 他にも[GitLab](https://about.gitlab.com/ja-jp/)が有名でしょう。
 自分のレポジトリを作成するにはアカウントが必要ですが、既存のレポジトリをのぞいたりコードをダウンロードするにはアカウントは必要ありません。
+が、LibXCのインストールの段階でおそらくgit cloneをしなければならないため、アカウントを作って公開鍵を登録しておくのが良いかと思います。
+`$ ssh-keygen -t rsa`から~/.ssh/id_rsa.pubをGitLabから登録しておきましょう（GitHubユーザーの場合は、git cloneでgithubを使うのが良い？）。
 
 というわけで、ホームディレクトリ上にOpenMolcasのv24.02 (2024年2月時点でのスナップショット。masterブランチでも良い)をインストールすることにしてみます。
 [https://gitlab.com/Molcas/OpenMolcas/-/releases](https://gitlab.com/Molcas/OpenMolcas/-/releases)のページから対応するZIPファイル（OpenMolcas-v24.02.zip）でもダウンロードして、
@@ -98,13 +100,7 @@ OpenMolcas-v24.02.zip
 デフォルトだとunzipコマンドが使えないので、管理者ユーザーでapt get installします。
 
 ```
-$ sudo passwd root
-[sudo] password for ***:
-New password:
-Retype new password:
-passwd: password updated successfully
-$ su
-Password:
+
 # apt install unzip
 # exit
 $ unzip OpenMolcas-v24.02.zip
@@ -121,18 +117,27 @@ $ ls # カレントディレクトリのファイル・ディレクトリを表�
 $ git clone https://gitlab.com/Molcas/OpenMolcas.git # リモートのOpenMolcasレポジトリを取得
 $ ls
 $ cd OpenMolcas
-$ git checkout v24.02 # v24.02というブランチにきりかえる
+$ ## git checkout v24.02 # v24.02というブランチにきりかえる
 ```
 
 普通にWSLをインストールするとgitも使えるはずですが、
 もしもgitコマンドが見つからない場合はなんとかしてインストールしましょう。
+
+## インストールの準備
 
 もう一つ、WSLはそのままだとコンパイラがインストールされていないようです。
 なので、普通にGNUコンパイラなどをインストールしてみます。
 余裕があればintel compilerでもインストールしましょう。
 
 ```
+$ sudo passwd root
+[sudo] password for ***:
+New password:
+Retype new password:
+passwd: password updated successfully
 $ su
+Password:
+# apt-get update
 # apt install gfortran
 # apt-get update
 # apt install gfortran
@@ -143,6 +148,7 @@ $
 ```
 
 「$」は一般ユーザーのプロンプト、「#」は管理者ユーザーのプロンプトです。
+<!--
 次に、BLASとLAPACKをインストールしましょう。
 あとで`./configure-cmake`をするときに失敗するため、
 BLASとLAPACKにはいろいろな種類がありますが、intelのmath kernel library (MKL)が使えるようなので、こちらをインストールしてしまいます。
@@ -153,7 +159,7 @@ $ su
 # exit
 $
 ```
-
+-->
 ここまでがインストール前の準備となります。
 
 ## OpenMolcasのコンパイル
@@ -168,21 +174,26 @@ $ ./configure-cmake
 できればオプションを検討して欲しい（`--compiler`、`--opt`、`--omp`、`--prefix`あたり）ところですが、まずは何も考えずに
 
 ```
-$ ./configure-cmake --default --omp
+$ ./configure-cmake --default
 ```
 
-すると、エラーメッセージが出るので対処しましょう（線形代数の計算に必要なBLASとLAPACKというライブラリが見つからないため）。
+すると、おそらくエラーメッセージが出るので対処しましょう（線形代数の計算に必要なBLASとLAPACKというライブラリが見つからないため）。
 結局、今回は次のような感じでインストールしました（このようにする必要はない）。
 
 ```
-$ ./configure-cmake --compiler gnu --prefix ~/OpenMolcas --omp
+$ ./configure-cmake --compiler gnu --prefix /home/nisimoto/OpenMolcas --omp
 ```
 
 あとは指示に沿ってコンパイル・インストールしましょう。
 
 ```
-$./ make-gnu_dev
+$./make-gnu_dev
 ```
+
+「コンパイルを通すのも勉強のうち」との方針なので、エラーが出た場合はなんとかしましょう。
+
+LibXCが上手くいかなかったのでhttps://qiita.com/kkato233/items/1fc71bde5a6d94f1b982 を参照したりしていましたが、いろいろやっていたのでどこで解決したかよく分かっていないです。
+普段の環境だと何も面倒なことは起こらないのですが･･･。
 
 ## OpenMolcasのコンパイル（GA並列）
 
