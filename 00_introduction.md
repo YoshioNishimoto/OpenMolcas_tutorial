@@ -70,7 +70,7 @@ New password: ...
 ```
 
 なお、WSLを使うにはLinuxのコマンドを勉強する必要があります。
-ls, cd, vi(m) (× emacs), cp, mv, rmあたりを調べて使えるようにしておきましょう。
+ls, cd, vi(m) (× emacs), cp, mv, rm, mkdirあたりは調べて使えるようにしておきましょう。
 
 ## Gitによるソースコードの取得
 
@@ -188,15 +188,17 @@ $ ./configure-cmake --default
 $ ./configure-cmake --compiler gnu --prefix /home/nisimoto/OpenMolcas --omp
 ```
 
+デフォルトでは`--opt dev`になる気がしますが、変なメッセージが出るので`--opt normal`でも良いでしょう。
 あとは指示に沿ってコンパイル・インストールしましょう（`make-`のあとはインストールの方法により異なる場合があります）。
 
 ```
-$./make-gnu_dev
+$./make-gnu_dev_omp
 ```
 
 「コンパイルを通すのも勉強のうち」との方針なので、エラーが出た場合はなんとかしましょう。
 
-LibXCが上手くいかなかったのでhttps://qiita.com/kkato233/items/1fc71bde5a6d94f1b982 を参照したりしていましたが、いろいろやっていたのでどこで解決したかよく分かっていないです。
+LibXCが上手くいかなかったのでhttps://qiita.com/kkato233/items/1fc71bde5a6d94f1b982 を参照したりしていましたが、
+いろいろやっていたのでどこで解決したかよく分かっていないです。
 普段の環境だと何も面倒なことは起こらないのですが･･･。
 
 ## OpenMolcasのコンパイル（GA並列）
@@ -209,6 +211,47 @@ OpenMolcasでスタンダードな並列計算は、Global Arrays (GA)を用い�
 GAは並列計算をするためのライブラリで、
 これはmessage passage interface (MPI)をラップして分散メモリをアクセスしやすくしているだけで、
 実際にはより低レベルのMPIを呼んでいます（私の理解が正しければ）。
+
+このため、まずはMPIでラップをされたコンパイラが必要になります。
+apt経由でOpenMPIがインストールできるので、
+
+```
+$ su
+# apt install libopenmpi-dev
+# apt install openmpi-bin
+# which mpif90
+/usr/bin/mpif90
+# which mpicc
+/usr/bin/mpicc
+# exit
+$
+```
+
+のような感じでインストール（と確認）ができます。
+次にGAをインストールします。
+
+```
+$ cd ~
+$ git clone git@github.com:GlobalArrays/ga.git
+$ cd ga
+$ ./autogen.sh
+$ ./configure
+$ make
+$ make check # optional
+$ sudo make install # optional
+```
+
+あとはGAを使ったOpenMolcasインストール。
+
+```
+$ export GA_BUILD=OFF
+$ export GAROOT=/usr/local
+$ ./configure-cmake --compiler gnu --prefix /home/nisimoto/OpenMolcas --ga /usr/local
+$ ./make-gnu_dev_ga
+```
+
+以下のテスト計算ではGA並列を使わない`molcas-gnu_dev_omp`で行っていますが、
+GA並列を使う場合は`molcas-gnu_dev_ga`を使ってください（インストールができた場合）。
 
 ## テスト計算
 
@@ -223,22 +266,53 @@ $ mkdir 00
 $ cd 00
 ```
 
-そして、次のファイルを使って計算をしてみましょう。
+そして、次のファイルを使って計算をしてみましょう（[00/test.input](00/test.input)）。
 
-```
+```shell:00/test.input
 &GATEWAY
+  Coord = 2
+  Angstrom
+  H 0.0 0.0 0.0
+  H 1.0 0.0 0.0
+  Basis = 6-31G*
+  Group = C1
+  NoCD
+
+&SEWARD
+
+&SCF
 ```
 
 これをコピーして、`cat > test.input`とでもして、入力を待っているところに上のファイルを貼り付けます。
 貼り付け方は環境によりますが、私の場合はマウスの中央ボタンを押すと、貼り付けができるようです。
-そして、次のようにしてOpenMolcasを使って計算をします（`molcas-`のあとはインストールの方法により異なる場合があります）。
-計算自体は`~/OpenMolcas/molcas_gnu test.input`部分だけで結構ですが、このままだと出力結果がターミナルに出て見直すのが難しくなるので、
+そしてCtrl+Cで`test.input`というファイルができると思われます。
+
+あとは`molcas-gnu_dev_omp`（`molcas-`のあとはインストールの方法により異なります）を使って計算します。
+が、そのままでは使えないので、次のような感じにします。
+
+```shell:molcas-gnu_dev_omp
+#!/bin/sh
+export MOLCAS=/home/nisimoto/OpenMolcas/builds/gnu_dev_omp
+${MOLCAS}/pymolcas $*
+```
+
+最後の行で、`pymolcas`を使うようにします。
+`molcas-gnu_dev_omp`のファイルは必要に応じて名前を変更し、`${HOME}/bin`に置いてパスを通しておくと良いでしょう。
+
+あとは、引数としてインプットファイル（`test.input`）を指定し、
+この実行ファイルを実行すると、OpenMolcasを使った計算をすることができます。
+
+```
+$ ~/OpenMolcas/molcas-gnu_dev_omp test.input
+```
+
+計算自体は`~/OpenMolcas/molcas-gnu_dev_omp test.input`部分だけで結構ですが、このままだと出力結果がターミナルに出て見直すのが難しくなるので、
 最後に`> test.out`をつけて、出力結果を`test.out`というファイルに書き出すようにしています。
 
 ```
 $ ls
 test.input
-$ ~/OpenMolcas/molcas-gnu_dev test.input > test.out
+$ ~/OpenMolcas/molcas-gnu_dev_omp test.input > test.out
 ```
 
 `test.out`の最後に
@@ -253,16 +327,46 @@ $ ~/OpenMolcas/molcas-gnu_dev test.input > test.out
 GAを使った並列計算をするには、例えば4コアを使う場合は
 
 ```
-$ ~/OpenMolcas/molcas-gnu_dev -np 4 test.input > test_GA.out
+$ ~/OpenMolcas/molcas-gnu_dev_ga -np 4 test.input > test_GA.out
 ```
 
 のように、`-np 4`みたいなことを書きます（MPIとOpenMPのハイブリッド並列は不明）。
+OMP並列・MPI並列ができているかは、`&GATEWAY`のパネル？をチェックします。
+
+```
+()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()
+
+                                              &GATEWAY
+
+             launched 4 MPI processes, running in PARALLEL mode (work-sharing enabled)
+                       available to each process: 2.0 GB of memory, 1 thread
+                                         master pid: 11195
+()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()
+```
+
+`launched 4 MPI processes`のようなこと（`-np 4`で指定するコア数による）が書いてあれば、GA (MPI)の並列ができています。
+OpenMP並列を行った場合は
+
+```
+()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()
+
+                                              &GATEWAY
+
+                                   only a single process is used 
+                       available to each process: 2.0 GB of memory, 4 threads
+                                             pid: 7705 
+()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()()
+```
+
+のような感じで`4 threads`のように表示されます。
+もしかするとここに書いてあるとおりにインストールすると、BLAS/LAPACKがOMP並列に対応していないかもしれません。
+必要に応じて、マニュアルでBLAS/LAPACKをインストールして、configureおよびコンパイルをし直してみましょう。
 
 想定していたよりインストールが難しかったので、とりあえずここまで。
 
 ## 演習問題
 
-- もう少し大きな分子を用いた計算をして、OMP並列とGA並列のパフォーマンスを比較してみましょう。
+- もう少し大きな分子を用いた計算をして、OMP並列とGA並列のパフォーマンスを比較してみましょう。`Coord = 2`は原子数を入れています。`Angstrom`の直後は元素とそれぞれのX軸、Y軸、Z軸方向の座標（単位はAngstrom）を示しています。
 - ヒュッケル法でどのような近似をしていたか教えてください。
 - 
 
