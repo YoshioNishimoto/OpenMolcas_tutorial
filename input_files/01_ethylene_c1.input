@@ -1,0 +1,9 @@
+&GATEWAY
+  Coord = 01_ethylene.xyz
+  Basis = cc-pVDZ
+  Group = C1
+  NoCD
+
+&SEWARD
+
+&SCF
