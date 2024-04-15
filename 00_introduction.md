@@ -266,9 +266,9 @@ $ mkdir 00
 $ cd 00
 ```
 
-そして、次のファイルを使って計算をしてみましょう（[00/test.input](00/test.input)）。
+そして、次のファイルを使って計算をしてみましょう（[00/test.input](input_files/00_test.input)）。
 
-```shell:00/test.input
+```shell:00_test.input
 &GATEWAY
   Coord = 2
   Angstrom
