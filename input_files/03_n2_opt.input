@@ -1,0 +1,18 @@
+&GATEWAY
+  Coord = 2
+  Angstrom
+  N 0.0 0.0 0.0
+  N 1.0 0.0 0.0
+  Basis = 6-31G*
+  Group = C1
+  NoCD
+
+>>> Do While
+
+&SEWARD
+
+&SCF
+
+&SLAPAF
+
+>>> End Do
