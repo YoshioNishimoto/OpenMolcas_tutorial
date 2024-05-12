@@ -7,3 +7,5 @@ OpenMolcasのチュートリアルです
 - 01 [一点計算(1)](01_sp1.md)
 - 02 [一点計算(2)](02_sp2.md)
 - 03 [構造最適化](03_geom_opt.md)
+- 04 [分子軌道の可視化](04_visualization.md)
+- 05 [単参照の電子相関計算](05_correlation.md)
