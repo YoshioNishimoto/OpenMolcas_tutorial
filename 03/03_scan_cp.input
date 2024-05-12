@@ -1,0 +1,45 @@
+> FILE $Project.xyz
+9
+comment
+C1      -0.870812729      0.000000000      0.000000000
+C2       0.435406365      0.754145946      0.000000000
+C        0.435406365     -0.754145946      0.000000000
+H       -1.462319845      0.000000000      0.910552000
+H       -1.462319845      0.000000000     -0.910552000
+H        0.731159923      1.266406134      0.910552000
+H        0.731159923      1.266406134     -0.910552000
+H        0.731159923     -1.266406134     -0.910552000
+H        0.731159923     -1.266406134      0.910552000
+> EOF
+
+> export DIST = 1.50829
+> foreach L in (1 .. 30)
+
+&GATEWAY
+  Coord = $Project.xyz
+  Basis = 6-31G*
+  Group = C1
+  RICD
+  Constraints
+    a = BOND C1 C2
+  Values
+    a = $DIST angstrom
+  End of Constraints
+
+> Do While
+
+&SEWARD
+
+&SCF
+
+&ALASKA
+
+&SLAPAF
+  Kriging
+
+> END DO
+
+> SAVE $Project.Opt.xyz $Project.xyz
+
+> eval DIST = $DIST + 0.1
+> end do
