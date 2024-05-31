@@ -201,6 +201,8 @@ SCF後は次のようなものが見えると思います。
 すなわち二電子励起した電子配置です。
 CASSCFの基底状態は、基本的には閉殻一重項基底状態の電子配置ですが、4%ほど二電子励起状態が含まれているとのことです。
 電子配置を見て分かるとおり、この一重項は当然$`S_\mathrm{z} = 0`$です。
+ここでは出てきませんが、電子配置のところで`u`や`d`が出てくる場合があります。
+これらはそれぞれ上向きスピン・下向きスピンの電子を意味します。
 
 `Natural orbitals and occupation numbers`は自然軌道とその占有数です。
 一般的な分子軌道はフォック行列を対角化することにより得ますが、自然軌道は一電子密度行列を対角化することにより得ます。
@@ -276,55 +278,93 @@ CASSCFは変分的な方法なので、計算条件が同じであれば、よ�
 また、励起エネルギーを計算する場合には基底状態のみならず励起状態でも波動関数パラメータを最適化するべきなので、SA-CASSCFを選択するべきかと思われます。
 S<sub>1</sub>まで考える場合は、多くの場合二状態の平均を取ります（が、他の励起状態やPESの扱い方に応じて変化します）。
 
-とりあえず簡単に計算するためには、上記の例から二行目を変更します。
-```python
-cas_list = [aa,bb,cc,dd,ee,ff]
-mc = mcscf.state_average_(mcscf.CASSCF(mf,6,6),[0.5,0.5])
-mo = mcscf.sort_mo(mc, mf.mo_coeff, cas_list)
-mc.kernel(mo)[0]
+とりあえず、上のベンゼンの計算が終わった軌道を初期軌道として、二状態を平均した計算をしてみましょう。
+私は論文ではSA2-CASSCF(6e,6o)と書いたりしますが、このあたりは各人の好みでしょう。
 ```
-二行目が変わっていると思います。
-これで、一つ目の状態と二つ目の状態を1:1の割合で平均（`[0.5,0.5]`）を取って計算することになります。
-出力ファイルを見ると以下のような感じになるかと思います。
-```
-CASSCF energy = -230.703195285598
-CASCI E = -230.703195285598  E(CI) = -6.39080007759441  S^2 = 1.0000000
-CASCI state-averaged energy = -230.703195285598
-CASCI energy for each state
-  State 0 weight 0.5  E = -230.773810504445 S^2 = 0.0000000
-  State 1 weight 0.5  E = -230.63258006675 S^2 = 2.0000000
-```
-最終的なエネルギーは`CASSCF energy = -230.703195285598`（二つのエネルギーのちょうど平均）です。
-で、平均された二つの状態は最後の二行に示されているとおりです。
-ですが、二つ目の状態のスピンが`S^2 = 2.0000000`となっているとおり、
-純粋な一重項ではなくなっていることが分かります。
+(benzene_SA2.inputというタイトルをつけたいけれど、付け方が分からない）
 
-純粋な一重項とするためには、以下の通り3行目・4行目を加えれば良いらしいです。
-```python
-cas_list = [aa,bb,cc,dd,ee,ff]
-mc = mcscf.state_average_(mcscf.CASSCF(mf,6,6),[0.5,0.5])
-mc.fcisolver.spin = 0 
-mc.fix_spin_(ss=0)
-mo = mcscf.sort_mo(mc, mf.mo_coeff, cas_list)
-mc.kernel(mo)[0]
+&GATEWAY
+（省略）
+
+&SEWARD
+
+> COPY $CurrDir/benzene.RasOrb INPORB
+
+&RASSCF
+  Inactive = 18
+  RAS2   = 6 
+  nActEl = 6 0 0 
+  CIRoot = 2 4 1 
+  LUMORB
 ```
-ですが、こちらはGAMESS-USの結果と合わないです･･･。
-状態平均の指定を`[0.5,0.5,0.0,0.0,0.0]`とすれば、GAMESS-USの結果と合います。
-状態平均に必要な状態しか計算しないと、必要なベクトルを加える前にDavidson iterationが収束してしまうからだと思われます。
+`CIRoot`を新しく追加しました。
+- 一つ目の値（NROOTS）は状態平均をする状態の数です。
+- 二つ目の値（LROOTS）はDavidsonアルゴリズムにより得るCI解の数です。
+- 三つ目の値(IALL)は状態平均の重みに関する値ですが、一般的には1で良いです。他の場合はマニュアル参照。
+ここでは、Davidson iterationを5つの状態について解き、二状態平均をしたことに対応します。
+LROOTS > NROOTSでなければいけません。
+エネルギーに直接関係するのはNROOTSの値です。例えば`CIRoot = 2 2 1`にしても状態平均エネルギーやS<sub>0</sub>とS<sub>1</sub>のエネルギーが変わらないことを確認しましょう。
+
+`LUMORB`は`INPORB`というファイルから軌道を読み込むオプションです。
+EMILコマンド（`> COPY $CurrDir/benzene.RasOrb INPORB`）を使って、前にSS-CASSCFの計算をして得た軌道（`benzene.RasOrb）を`INPORB`としてコピーして、
+その軌道を初期軌道としてSA2-CASSCF計算をするといった次第です。
+過去に収束した軌道を使える場合は、極力使うようにしましょう。
+
+## 構造最適化について
+
+OpenMolcasはSS-CASSCF、SA-CASSCFを使って構造最適化をすることができます。
+SS-CASSCFの場合は特に何も気にせず、[構造最適化](03_geomopt.md)のときと同じようにEMILコマンドや`&SLAPAF`を追加すれば良いのですが、
+SA-CASSCFの場合は構造最適化に用いる状態を指定しなければなりません。
+例えば、上のベンゼンのSA2-CASSCF(6e,6o)で、基底状態の構造最適化をしたい場合はさらに
+```
+&GATEWAY
+（省略）
+
+> Do While
+
+&SEWARD
+
+> if (iter == 1)
+> COPY $CurrDir/bbb.RasOrb INPORB
+> end if
+
+&RASSCF
+  Inactive = 18
+  RAS2   = 6 
+  nActEl = 6 0 0 
+  CIRoot = 2 2 1 
+  LUMORB
+  RlxRoot = 1 
+
+&SLAPAF
+
+> End Do
+```
+のような感じで、`RlxRoot`というオプションを追加します。
+これはCASSCF計算の一番目の（一番エネルギーが低い）状態を使って構造最適化するという意味です。
+すなわちこれはS<sub>0</sub>です。
+S<sub>1</sub>を使って構造最適化をする場合は`RlxRoot = 2`にしなければいけません。
+
+SA-CASSCFの構造最適化を行う際に、新しく`&MCLR`というモジュールが（自動的に）呼ばれていて、繰り返し計算をしています。
+ここで解いている方程式はZ-vector方程式と呼ばれているのですが、ムダに長くなるので興味がある場合は調べてみましょう。
+DOI: [10.1080/002689700110005642](https://doi.org/10.1080/002689700110005642)
 
 ## 演習問題
 
-- [単参照での励起状態計算](10_excited.md)と同様に、SA-CASSCF(2e,2o)を用いてethyleneの吸収・蛍光の波長を計算してみましょう。
-CASSCFでも構造最適化が可能とは思いますが、新しいPySCFでどのように動くかよく分からないので、前回TD-B3LYPを用いて計算したと思われる構造を用いて良いと思います。CASSCFの構造最適化でも良い。
-- [分子軌道の可視化](05_MO_visualization.md)で取り扱った、1,3-butadiene (C<sub>4</sub>H<sub>6</sub>)と1,3,5-hexatriene (C<sub>6</sub>H<sub>8</sub>)でも同様に垂直励起エネルギーの計算を行ってみましょう。CASSCFの計算後に出てくる、natural orbital（とoccupation number）も示してください。
+- SA2-CASSCF(2e,2o)を用いてethyleneの吸収・蛍光の波長を計算してみましょう。
+- [分子軌道の可視化](04_visualization.md)で取り扱った、1,3-butadiene (C<sub>4</sub>H<sub>6</sub>)と1,3,5-hexatriene (C<sub>6</sub>H<sub>8</sub>)でも同様に垂直励起エネルギーの計算を行ってみましょう。CASSCFの計算後に出てくる、natural orbital（とoccupation number）も示してください。
 ただし、当然異なる活性空間を定義する必要があるため、きちんと軌道を見ながら定義しましょう。
-- 上でSA-CASSCFの計算を行うとスピン多重度が1となるような計算をしておきながら`S^2 = 2.0000000`となった状態は、どのようなスレーター行列式により記述できるでしょうか。二電子二軌道モデルで教えてください。
-- CASSCFのsize-extensivity（[単参照電子相関理論](07_SR_corr.md)の演習問題を参照）を検証してみましょう。CASSCFはsize-extensiveな手法です。計算条件は自分で設定してください。ただし、多配置性がほとんどでない系はやめましょう（活性空間の定義も難しくなる）。一般的には、HOMO--LUMOギャップが大きな分子は多配置性が出にくいです。
+<!--- CASSCFのsize-extensivity（[単参照電子相関理論](07_SR_corr.md)の演習問題を参照）を検証してみましょう。CASSCFはsize-extensiveな手法です。計算条件は自分で設定してください。ただし、多配置性がほとんどでない系はやめましょう（活性空間の定義も難しくなる）。一般的には、HOMO--LUMOギャップが大きな分子は多配置性が出にくいです。-->
 - 2-methylpyrimidineの第一励起はn-π*励起になった記憶があります。
 どのように活性空間を設定すると、この状態を正しく記述できそうでしょうか。
 活性空間に入れるべき分子軌道（できればCASSCF計算が収束した後のnatural orbital）を示しましょう。
-
+- ethyleneのC–C間距離を100 Angstrom程度に引き延ばしたとき、size-extensiveになるような計算条件を見つけましょう。
+  - ethyleneの計算で、どのように活性空間を定義するのが良いでしょうか。
+  - CH<sub>2</sub>の計算で、どのように活性区間を定義するのが良いでしょうか。必要に応じてスピン量子数を変更してみましょう（マニュアル参照）。
+  - このとき、CASSCF法のsize-extensive（あるいはsize-consistent）になるでしょうか。
+- O<sub>3</sub>の基底状態の構造を得てみましょう。実験値は、結合長が1.2717 Angstrom、結合角が116.47°とのことです。[^3]
 ---
 
 [^1]: 他の研究者から、元に戻すように言われているにもかかわらず戻っていない。自分の手元はゼロになるように直しています。`rasscf/neworb_rasscf.f`で`FDIAG(NO1+NT)=FP(II+NFO+NIO+NFI_+ISTFCK)`を`FDIAG(NO1+NT)=0.0d+00`にする。
 [^2]: おそらくinactiveとsecondaryはquasi-canonical orbital（inactiveとsecondaryで別個に対角化をするため、それぞれの空間内ではcanonical orbitalですが、全体としてはcanonical orbitalではない）ですが、activeはnatural orbital。
+[^3]: A. Barbe, C. Secroun, and P. Jouve, “Infrared spectra of <sup>16</sup>O<sub>3</sub> and <sup>18</sup>O<sub>3</sub>: Darling and Dennison resonance and anharmonic potential function of ozone,” J. Mol. Spectrosc. 49, 171–182 (1974).
