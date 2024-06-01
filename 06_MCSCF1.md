@@ -346,8 +346,7 @@ SA-CASSCFの場合は構造最適化に用いる状態を指定しなければ�
 S<sub>1</sub>を使って構造最適化をする場合は`RlxRoot = 2`にしなければいけません。
 
 SA-CASSCFの構造最適化を行う際に、新しく`&MCLR`というモジュールが（自動的に）呼ばれていて、繰り返し計算をしています。
-ここで解いている方程式はZ-vector方程式と呼ばれているのですが、ムダに長くなるので興味がある場合は調べてみましょう。
-DOI: [10.1080/002689700110005642](https://doi.org/10.1080/002689700110005642)
+ここで解いている方程式はZ-vector方程式と呼ばれているのですが、ムダに長くなるので興味がある場合は調べてみましょう。[^3]
 
 ## 演習問題
 
@@ -362,9 +361,11 @@ DOI: [10.1080/002689700110005642](https://doi.org/10.1080/002689700110005642)
   - ethyleneの計算で、どのように活性空間を定義するのが良いでしょうか。
   - CH<sub>2</sub>の計算で、どのように活性区間を定義するのが良いでしょうか。必要に応じてスピン量子数を変更してみましょう（マニュアル参照）。
   - このとき、CASSCF法のsize-extensive（あるいはsize-consistent）になるでしょうか。
-- O<sub>3</sub>の基底状態の構造を得てみましょう。実験値は、結合長が1.2717 Angstrom、結合角が116.47°とのことです。[^3]
+- O<sub>3</sub>の基底状態の構造を得てみましょう。実験値は、結合長が1.2717 Angstrom、結合角が116.47°とのことです。[^4]
 ---
 
-[^1]: 他の研究者から、元に戻すように言われているにもかかわらず戻っていない。自分の手元はゼロになるように直しています。`rasscf/neworb_rasscf.f`で`FDIAG(NO1+NT)=FP(II+NFO+NIO+NFI_+ISTFCK)`を`FDIAG(NO1+NT)=0.0d+00`にする。
+[^1]: 他の研究者から、元に戻すように言われているにもかかわらず戻っていない。自分の手元の普段使いはゼロになるように直しています。`rasscf/neworb_rasscf.f`で`FDIAG(NO1+NT)=FP(II+NFO+NIO+NFI_+ISTFCK)`を`FDIAG(NO1+NT)=0.0d+00`にする。
 [^2]: おそらくinactiveとsecondaryはquasi-canonical orbital（inactiveとsecondaryで別個に対角化をするため、それぞれの空間内ではcanonical orbitalですが、全体としてはcanonical orbitalではない）ですが、activeはnatural orbital。
-[^3]: A. Barbe, C. Secroun, and P. Jouve, “Infrared spectra of <sup>16</sup>O<sub>3</sub> and <sup>18</sup>O<sub>3</sub>: Darling and Dennison resonance and anharmonic potential function of ozone,” J. Mol. Spectrosc. 49, 171–182 (1974).
+[^3]: J. Stålring, A. Bernhardsson, and R. Lindh, “Analytical gradients of a state average MCSCF state and a state average diagnostic,” [Mol. Phys.](https://doi.org/10.1080/002689700110005642) 99, 103–114 (2001).
+[^4]: A. Barbe, C. Secroun, and P. Jouve, “Infrared spectra of <sup>16</sup>O<sub>3</sub> and <sup>18</sup>O<sub>3</sub>: Darling and Dennison resonance and anharmonic potential function of ozone,” 
+[J. Mol. Spectrosc.](https://doi.org/10.1016/0022-2852(74)90267-7) 49, 171–182 (1974).
