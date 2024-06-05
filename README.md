@@ -9,3 +9,6 @@ OpenMolcasのチュートリアルです
 - 03 [構造最適化](03_geom_opt.md)
 - 04 [分子軌道の可視化](04_visualization.md)
 - 05 [単参照の電子相関計算](05_correlation.md)
+- 06 [多配置SCF計算(1)](06_MCSCF1.md)
+
+- ex01 [演習課題01](ex01.md)
