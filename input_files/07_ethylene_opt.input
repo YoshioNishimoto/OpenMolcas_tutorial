@@ -1,0 +1,36 @@
+&GATEWAY
+  Coord
+  6
+  ethylene
+  C1              -0.658467        0.000000        0.000000
+  C2               0.658467        0.000000        0.000000
+  H3              -1.225694        0.914334        0.000000
+  H4              -1.225694       -0.914334        0.000000
+  H5               1.225694        0.914334        0.000000
+  H6               1.225694       -0.914334        0.000000
+  Basis = 6-31G*
+  Group = C1
+  RICD
+
+> do while
+
+&SEWARD
+
+&SCF
+
+&RASSCF
+  Inactive = 7
+  RAS2   = 2
+  nActEl = 2 0 0
+
+&CASPT2
+  IPEA = 0.00
+  IMAGinary = 0.20
+
+&MCLR
+
+&ALASKA
+
+&SLAPAF
+
+> end do
