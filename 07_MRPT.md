@@ -65,7 +65,7 @@ $`T_{pqrs}`$はシフトを含めた式で計算するけれど、エネルギ�
 ## CASPT2の計算
 
 とりあえず、いつも通りethyleneを使って計算をしてみましょう。
-間違っていなければ[07_ethylene_SS.input](07_ethylene_SS.out)と同一です。
+間違っていなければ[07_ethylene_SS.input](input_files/07_ethylene_SS.input)と同一です。
 ```
 &GATEWAY
   Coord
@@ -203,7 +203,7 @@ XMS-CASPT2はこのポテンシャルエネルギー面の問題を解決でき�
 それ以外の場合はケースバイケースです。
 
 インプットファイルとしては、次のような感じにします。
-[07_ethylene_MS.input](07_ethylene_MS.out)も参照。
+[07_ethylene_MS.input](input_files/07_ethylene_MS.input)も参照。
 ```
 &CASPT2
   IPEA = 0.00
