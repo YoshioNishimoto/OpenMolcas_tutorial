@@ -1,0 +1,17 @@
+&GATEWAY
+  Coord = hexatriene.Opt.xyz
+  Basis = cc-pVDZ
+  Group = C1
+  RICD
+
+&SEWARD
+
+> COPY $CurrDir/hexatriene.RasOrb INPORB
+
+&RASSCF
+  LUMORB
+  INACTIVE = 19
+  NACTEL = 6 0 0
+  RAS1   = 0
+  RAS2   = 6
+  RAS3   = 0
