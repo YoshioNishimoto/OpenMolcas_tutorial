@@ -19,11 +19,11 @@
 この方法は、まず活性空間をRAS1、RAS2、RAS3という三つの空間に分割します。
 そして、RAS2内ではCASと同様にfull CIの計算を行います。
 一方、RAS1とRAS3はそれぞれ主に二電子占有とゼロ電子占有される空間となりますが、
-励起する・励起される電子の数を制限します。
+励起する・励起される電子の数を制限してやります。
 CAS空間ではすべての分子軌道と電子を用いてfull CIを行いますが、
 RAS空間では励起する電子の数を制限した上で、より小さなRAS2空間のみでfull CIを行います。
 
-<img src="https://github.com/YoshioNishimoto/sandbox/blob/figure/CAS_vs_RAS.png" width="1024">
+<img src="https://github.com/YoshioNishimoto/sandbox/blob/figure/CAS_vs_RAS.png" width="768">
 
 一般的には多配置性に寄与しやすいのはフロンティア軌道付近なので、
 このあたりの分子軌道と電子をRAS2に含めたいところです。
@@ -52,10 +52,11 @@ RAS空間では励起する電子の数を制限した上で、より小さなRA
 - <i>k</i>はRAS3の分子軌道の数
 
 これらのオプションは、それぞれ`RAS1`、`RAS2`、`RAS3`に対応します。
-そのようなわけで、上の図の場合は
+そのようなわけで、上の図の場合はRAS1から励起する最大の電子数を1、RAS3へ励起する最大の電子数を3とすると
 ```
 &RASSCF
-  NACTEL = 6, 2, 2
+  INACTIVE = 3
+  NACTEL = 6, 1, 3
   RAS1 = 2
   RAS2 = 2
   RAS3 = 2
@@ -70,21 +71,26 @@ RAS空間では励起する電子の数を制限した上で、より小さなRA
 また、Hartree–Fockで得られた分子軌道を初期の軌道として読み込ませ、RAS1と占有軌道の数、RAS2をゼロ、RAS3を仮想軌道の数にして、
 さらにRAS1空間から励起する電子数・RAS3空間へ励起する電子数を2にすると、CISD (configuration interaction singles and doubles)ができます（[単参照の電子相関計算](05_correlation.md)参照）。
 
+OpenMolcasではQCMaquisというプラグインを入れることでdensity matrix renormalization group (DMRG)を用いた計算ができるのですが、
+自分の環境ではインストールができないようです。
+試してみてください。
+こちらは一応、大きな活性空間でCASSCFができるとかなんとか･･･。
+
 ## CASSCF vs. RASSCF
 
 というわけで、1,3,5-hexatrieneを使って、CASとRASで比較してみましょう。
-必要なファイル（構造を初期軌道）はGitHub参照。
-とりあえずCASの場合は次のような感じにしておきます。
+必要なファイル（構造と初期軌道）はGitHub参照。
+とりあえずCASの場合（[08_cas.input](input_files/08_cas.input)）は次のような感じにしておきます。
 ```
 &GATEWAY
-  Coord = hexatriene.Opt.xyz
+  Coord = 08_hexatriene.Opt.xyz
   Basis = cc-pVDZ
   Group = C1
   RICD
 
 &SEWARD
 
-> COPY $CurrDir/hexatriene.RasOrb INPORB
+> COPY $CurrDir/08_hexatriene.RasOrb INPORB
 
 &RASSCF
   LUMORB
@@ -109,7 +115,10 @@ RAS空間では励起する電子の数を制限した上で、より小さなRA
 
 例えば、`RAS(6,1,1;2,2,2)`の場合、スレーター行列式の数は31で、エネルギーは`-231.87671475`になると思います。
 計算に用いるスレーター行列式の数がかなり少ないため、エネルギーもかなり高いことが分かります。
+また、SCFが収束するまでのサイクル数はかなり多いと思います。
+基本的にはRASSCFの収束はしづらいです。
 一方、例えば`RAS(6,6,6;3,0,3)`の場合、CASSCFと同じ結果になると思います。
+これは、単純に同じ数のスレーター行列式を使うような活性空間を定義しているためです。
 
 ## 状態平均RASSCF
 
@@ -146,4 +155,7 @@ RASSCFを用いた構造最適化も可能です。
 
 - RASSCFがsize-extensiveでないことを示す方法を考え、さらに数値的にsize-extensiveでないことを示してください。
 - 上のhexatrieneの例を用いて、CASPT2(6e,6o)とRASPT2(6,6,6;3,0,3)の結果を比較してみましょう。
+<!-- - naphthaleneのabsorptionとfluorescenceを計算し、CASとRASで比較してみましょう。計算の詳細はお任せします。[適当に調べてみた](https://omlc.org/spectra/PhotochemCAD/html/001.html)ところ、cyclohexane中のabsorptionは275 nmで、fluorescenceは270 nmとのことです。（blue shiftするのか？）-->
+- 時間があればQCMaquisをインストールしてDMRGの計算をしてみましょう。
+- RASSCFでも対称性を用いてMCLRが動くようにしてください。
 ---
