@@ -1,12 +1,12 @@
 &GATEWAY
-  Coord = hexatriene.Opt.xyz
+  Coord = 08_hexatriene.Opt.xyz
   Basis = cc-pVDZ
   Group = C1
   RICD
 
 &SEWARD
 
-> COPY $CurrDir/hexatriene.RasOrb INPORB
+> COPY $CurrDir/08_hexatriene.RasOrb INPORB
 
 &RASSCF
   LUMORB
