@@ -23,7 +23,7 @@
 CAS空間ではすべての分子軌道と電子を用いてfull CIを行いますが、
 RAS空間では励起する電子の数を制限した上で、より小さなRAS2空間のみでfull CIを行います。
 
-<!--<img src="https://github.com/YoshioNishimoto/sandbox/blob/figure/MCSCF_1.png" width="1024">-->
+<img src="https://github.com/YoshioNishimoto/sandbox/blob/figure/CAS_vs_RAS.png" width="1024">
 
 一般的には多配置性に寄与しやすいのはフロンティア軌道付近なので、
 このあたりの分子軌道と電子をRAS2に含めたいところです。
@@ -40,36 +40,110 @@ RAS空間では励起する電子の数を制限した上で、より小さなRA
 しかしながら、RAS1とRAS3の寄与は小さい、けれど活性空間に入れておきたいという場合はありますので、そのような時に便利です。
 例えば、金属部分はCASにしたいけれど、リガンド部分はCASに入れるほどではないとか（？）。
 
+表記の方法に関しては、RAS(<i>n</i>,<i>l</i>,<i>m</i>;<i>i</i>,<i>j</i>,<i>k</i>)という表記をご紹介しておきます。
+- <i>n</i>は活性空間の電子数
+- <i>l</i>はRAS1空間から励起する最大の電子数
+- <i>m</i>はRAS3空間へ励起する最大の電子数
+
+これは、インプットファイルでは`NACTEL = n l m`というオプションに対応します。
+
+- <i>i</i>はRAS1の分子軌道の数
+- <i>j</i>はRAS2の分子軌道の数
+- <i>k</i>はRAS3の分子軌道の数
+
+これらのオプションは、それぞれ`RAS1`、`RAS2`、`RAS3`に対応します。
+そのようなわけで、上の図の場合は
+```
+&RASSCF
+  NACTEL = 6, 2, 2
+  RAS1 = 2
+  RAS2 = 2
+  RAS3 = 2
+```
+というオプションを入力することとなります。
+`INACTIVE`は、CASの場合と同様で、上の図の場合は3となります。
+対称性を用いる場合は、`RAS1`、`RAS2`、`RAS3`は既約表現ごとに軌道の数を入れることとなりますが、
+`NACTEL`はCASの場合と同様に、活性空間全体の数を入れることとなります。
+
 なお、RAS2以外すべての二電子占有軌道をRAS1に入れ、すべての非占有軌道をRAS3に入れ、
 励起する・される電子の最大数を2にすると、uncontracted MRCISD (multireference configuration interaction singles and doubles)に対応します。
+また、Hartree–Fockで得られた分子軌道を初期の軌道として読み込ませ、RAS1と占有軌道の数、RAS2をゼロ、RAS3を仮想軌道の数にして、
+さらにRAS1空間から励起する電子数・RAS3空間へ励起する電子数を2にすると、CISD (configuration interaction singles and doubles)ができます（[単参照の電子相関計算](05_correlation.md)参照）。
 
-## CASSCF計算
+## CASSCF vs. RASSCF
 
-## 活性空間の指定
+というわけで、1,3,5-hexatrieneを使って、CASとRASで比較してみましょう。
+必要なファイル（構造を初期軌道）はGitHub参照。
+とりあえずCASの場合は次のような感じにしておきます。
+```
+&GATEWAY
+  Coord = hexatriene.Opt.xyz
+  Basis = cc-pVDZ
+  Group = C1
+  RICD
 
-## 状態平均CASSCF
+&SEWARD
+
+> COPY $CurrDir/hexatriene.RasOrb INPORB
+
+&RASSCF
+  LUMORB
+  INACTIVE = 19
+  NACTEL = 6 0 0
+  RAS1   = 0
+  RAS2   = 6
+  RAS3   = 0
+```
+このとき、スレーター行列式の数は210（`Number of determinants`の値参照）で、エネルギーは`-231.91133043`になると思います。
+
+それでは、次の活性空間を用いて、CASSCFの値といくつかのRASSCFの値を比較してみましょう。
+初期軌道はCASSCFで得られたものを用いるのが良いでしょう。
+
+- RAS(6,1,1;2,2,2)
+- RAS(6,1,1;1,4,1)
+- RAS(6,2,2;3,0,3)
+- RAS(6,2,2;2,2,2)
+- RAS(6,2,2;1,4,1)
+- RAS(6,4,4;2,2,2)
+- RAS(6,6,6;3,0,3)
+
+例えば、`RAS(6,1,1;2,2,2)`の場合、スレーター行列式の数は31で、エネルギーは`-231.87671475`になると思います。
+計算に用いるスレーター行列式の数がかなり少ないため、エネルギーもかなり高いことが分かります。
+一方、例えば`RAS(6,6,6;3,0,3)`の場合、CASSCFと同じ結果になると思います。
+
+## 状態平均RASSCF
+
+状態平均（state-average）の方法はCASSCFの場合と同様なので省略。
+
+## RASPT2
+
+CASSCF (CAS-CI)で得られた波動関数を参照して摂動的な二電子励起を考慮すると、CASPT2ができました。
+同様に、RASSCF（RAS-CI）で得られた波動関数を参照すると、RASPT2と呼ばれます。
+計算の方法はCASPT2と同様なので省略。
+
+ただし、RASPT2にはいくつかの注意点があります。
+一つ目は、現在の実装では、RASPT2で活性空間内の二電子励起が考慮されない点です。
+CASPT2の場合はCASSCFを参照しているため、活性空間内の二電子励起を考慮する必要がありませんでした。
+しかし、RASPT2の場合は、（いくつかの特殊な場合を除いて）例えばRAS1とRAS2のあいだやRAS1とRAS3のあいだでの励起を本来は考慮しなければなりません。
+OpenMolcasの実装では現状できません。
+
+もう一つは、CASと同等になるRASを用いて計算をする場合です。
+SCF計算では、上のCAS(6e,6o) vs. RAS(6,6,6;3,0,3)の例から分かるとおり、
+RASSCFでも活性空間内ですべての電子配置を考慮するような活性空間を定義すると、CASSCFと同じ結果が得られます。
+しかし、こうして得られた波動関数を用いてRASPT2の計算をしても、CASPT2と同じ結果にはなりません。
+これは、（一般化）フォック行列の対角化の方法が異なるためです。
+CASPT2の場合は活性空間全体で対角化をしますが、RASPT2の場合はRAS1、RAS2、RAS3と分けて対角化をします。
+このような違いから、SCF計算の結果が同じでもCASPT2とRASPT2で結果が異なる場合があります。
 
 ## 構造最適化について
 
+RASSCFを用いた構造最適化も可能です。
+方法はこれまでと同様です。
+単状態のRASSCFの場合は対称性を用いることができるはずです。
+しかし、SA-RASSCFやRASPT2レベルで構造最適化を行う場合は、対称性を用いることができません。
 
 ## 演習問題
 
-- SA2-CASSCF(2e,2o)を用いてethyleneの吸収・蛍光の波長を計算してみましょう。
-- [分子軌道の可視化](04_visualization.md)で取り扱った、1,3-butadiene (C<sub>4</sub>H<sub>6</sub>)と1,3,5-hexatriene (C<sub>6</sub>H<sub>8</sub>)でも同様に垂直励起エネルギーの計算を行ってみましょう。CASSCFの計算後に出てくる、natural orbital（とoccupation number）も示してください。
-ただし、当然異なる活性空間を定義する必要があるため、きちんと軌道を見ながら定義しましょう。
-<!--- CASSCFのsize-extensivity（[単参照電子相関理論](07_SR_corr.md)の演習問題を参照）を検証してみましょう。CASSCFはsize-extensiveな手法です。計算条件は自分で設定してください。ただし、多配置性がほとんどでない系はやめましょう（活性空間の定義も難しくなる）。一般的には、HOMO--LUMOギャップが大きな分子は多配置性が出にくいです。-->
-- 2-methylpyrimidineの第一励起はn-π*励起になった記憶があります。
-どのように活性空間を設定すると、この状態を正しく記述できそうでしょうか。
-活性空間に入れるべき分子軌道（できればCASSCF計算が収束した後のnatural orbital）を示しましょう。
-- ethyleneのC–C間距離を100 Angstrom程度に引き延ばしたとき、size-extensiveになるような計算条件を見つけましょう。
-  - ethyleneの計算で、どのように活性空間を定義するのが良いでしょうか。
-  - CH<sub>2</sub>の計算で、どのように活性区間を定義するのが良いでしょうか。必要に応じてスピン量子数を変更してみましょう（マニュアル参照）。
-  - このとき、CASSCF法のsize-extensive（あるいはsize-consistent）になるでしょうか。
-- O<sub>3</sub>の基底状態の構造を得てみましょう。実験値は、結合長が1.2717 Angstrom、結合角が116.47°とのことです。[^4]
+- RASSCFがsize-extensiveでないことを示す方法を考え、さらに数値的にsize-extensiveでないことを示してください。
+- 上のhexatrieneの例を用いて、CASPT2(6e,6o)とRASPT2(6,6,6;3,0,3)の結果を比較してみましょう。
 ---
-
-[^1]: 他の研究者から、元に戻すように言われているにもかかわらず戻っていない。自分の手元の普段使いはゼロになるように直しています。`rasscf/neworb_rasscf.f`で`FDIAG(NO1+NT)=FP(II+NFO+NIO+NFI_+ISTFCK)`を`FDIAG(NO1+NT)=0.0d+00`にする。
-[^2]: おそらくinactiveとsecondaryはquasi-canonical orbital（inactiveとsecondaryで別個に対角化をするため、それぞれの空間内ではcanonical orbitalですが、全体としてはcanonical orbitalではない）ですが、activeはnatural orbital。
-[^3]: J. Stålring, A. Bernhardsson, and R. Lindh, “Analytical gradients of a state average MCSCF state and a state average diagnostic,” [Mol. Phys.](https://doi.org/10.1080/002689700110005642) 99, 103–114 (2001).
-[^4]: A. Barbe, C. Secroun, and P. Jouve, “Infrared spectra of <sup>16</sup>O<sub>3</sub> and <sup>18</sup>O<sub>3</sub>: Darling and Dennison resonance and anharmonic potential function of ozone,” 
-[J. Mol. Spectrosc.](https://doi.org/10.1016/0022-2852(74)90267-7) 49, 171–182 (1974).
