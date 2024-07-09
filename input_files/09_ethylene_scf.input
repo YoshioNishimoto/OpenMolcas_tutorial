@@ -21,15 +21,15 @@
 
 &SEWARD
 
+>> if (iter = 1)
 &SCF
+>> end if
 
 &RASSCF
   Inactive = 7
   RAS2   = 2
   nActEl = 2 0 0
   CIRoot = 2 2 1
-
-&ALASKA
 
 &SLAPAF
   Kriging

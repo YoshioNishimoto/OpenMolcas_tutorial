@@ -21,7 +21,9 @@
 
 &SEWARD
 
+>> if (iter = 1)
 &SCF
+>> end if
 
 &RASSCF
   Inactive = 7
@@ -34,8 +36,6 @@
   IPEA = 0.00
   XMULT = ALL
   CORT
-
-&ALASKA
 
 &SLAPAF
   Kriging
