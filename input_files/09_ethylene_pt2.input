@@ -1,0 +1,43 @@
+&GATEWAY
+  Coord
+  6
+  twisted pyramidal
+  C  -0.0268124148   0.0146727301  -0.6433152174
+  C  -0.1789970372  -0.0454557662   0.7799261438
+  H   0.6117000872   0.7368010260  -1.1825364226
+  H  -0.4935302484  -0.7457813338  -1.2883279904
+  H   0.9679707951  -0.0807166158   0.9463909612
+  H  -0.2501109509   0.9765365107   1.2374969793
+  Basis = cc-pVDZ
+  Group = C1
+  RICD
+  Constraints
+    a = Ediff 1 2
+  Values
+    a = 0.00
+  End of Constraints
+
+>> do while
+
+&SEWARD
+
+&SCF
+
+&RASSCF
+  Inactive = 7
+  RAS2   = 2
+  nActEl = 2 0 0
+  CIRoot = 2 2 1
+
+&CASPT2
+  IMAG = 0.20
+  IPEA = 0.00
+  XMULT = ALL
+  CORT
+
+&ALASKA
+
+&SLAPAF
+  Kriging
+
+>> end do
